@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/stronghold/static/js/main.520bcc94.js",
+    "index.html": "/stronghold/index.html",
+    "main.520bcc94.js.map": "/stronghold/static/js/main.520bcc94.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.520bcc94.js"
+  ]
+}
