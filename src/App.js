@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
+import html2canvas from 'html2canvas';  // html2canvas 추가
 
 const TimelineBars = ({ profiles }) => {
   const phaseColors = {
@@ -125,33 +126,29 @@ const RoastingAnalyzer = () => {
     setProfiles([...profiles, ...newProfiles]);
   };
 
-  const handleSaveAsImage = () => {
+  const handleSaveAsImage = async () => {
     if (!contentRef.current) return;
 
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    const element = contentRef.current;
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
 
-    // Set canvas dimensions
-    canvas.width = element.offsetWidth * 2;
-    canvas.height = element.offsetHeight * 2;
-    context.scale(2, 2);
-
-    // Draw white background
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Convert to data URL and trigger download
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = 'roasting-profile.png';
-    link.href = dataUrl;
-    link.click();
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'roasting-profile.png';
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('이미지 저장 중 오류 발생:', error);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-4" ref={contentRef}>
       <div className="mb-6">
         <label className="block mb-2 text-sm font-medium text-gray-900">
           Upload Roasting Profiles (Excel files)
@@ -166,7 +163,7 @@ const RoastingAnalyzer = () => {
       </div>
 
       {profiles.length > 0 && (
-        <div ref={contentRef}>
+        <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium">Roasting Profiles</h2>
             <button
@@ -252,8 +249,4 @@ const analyzeProfile = (data, fileName) => {
   };
 };
 
-const App = () => {
-  return <RoastingAnalyzer />;
-};
-
-export default App;
+export default RoastingAnalyzer;
