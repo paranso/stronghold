@@ -20,10 +20,10 @@ const TimelineBars = React.memo(({ profiles }) => (
   <div className="w-full space-y-4 p-4">
     {profiles.map((profile) => (
       <div key={profile.fileName} className="relative h-7 mb-3">
-        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
+        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-base text-black whitespace-nowrap">
           {profile.fileName}
         </div>
-        {profile.phasesArray.map((phaseName) => { // phasesArray로 순서 보장
+        {profile.phasesArray.map((phaseName) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
 
@@ -32,9 +32,6 @@ const TimelineBars = React.memo(({ profiles }) => (
           }, 0);
           const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
           const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
-          const endTimeInSeconds = startTimeInSeconds + phaseInfo.durationSeconds;
-          const endPercent = (endTimeInSeconds / maxTotalSeconds) * 100;
-
 
           return (
             <div
@@ -46,7 +43,7 @@ const TimelineBars = React.memo(({ profiles }) => (
                 backgroundColor: phaseColors[phaseName],
               }}
             >
-              <div className="flex items-center justify-center w-full h-full text-sm text-black whitespace-nowrap px-1"> {/* 텍스트 색상 검정, 크기 조금 더 크게 */}
+              <div className="flex items-center justify-center w-full h-full text-base text-black whitespace-nowrap px-1">
                 {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
               </div>
             </div>
@@ -64,8 +61,8 @@ const TimelineBars = React.memo(({ profiles }) => (
         <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(9 * 60 / maxTotalSeconds) * 100}%` }} />
         <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(10 * 60 / maxTotalSeconds) * 100}%` }} />
         <div
-          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-gray-700"
-          style={{ right: '0%' }} // 마지막 막대 오른쪽 끝에 위치
+          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-sm text-black"
+          style={{ right: '0%' }}
         >
           {profile.totalTime}
         </div>
@@ -80,7 +77,7 @@ const TimelineBars = React.memo(({ profiles }) => (
           style={{ left: `${(i * 60 / maxTotalSeconds) * 100}%` }}
         >
           <div className="h-2 w-px bg-gray-300" />
-          <div className="text-xs text-gray-500 mt-1">{i}:00</div>
+          <div className="text-sm text-black mt-1">{i}:00</div>
         </div>
       ))}
     </div>
@@ -89,7 +86,7 @@ const TimelineBars = React.memo(({ profiles }) => (
 TimelineBars.displayName = 'TimelineBars';
 
 const ProfileDetailCard = React.memo(({ profile }) => {
-  let cumulativePercentage = 0; // 누적 퍼센트 계산을 위한 변수
+  let cumulativePercentage = 0;
 
   return (
     <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm relative">
@@ -100,23 +97,23 @@ const ProfileDetailCard = React.memo(({ profile }) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
           const widthPercentage = parseFloat(phaseInfo.percentage);
-          cumulativePercentage += widthPercentage; // 퍼센트 누적
+          cumulativePercentage += widthPercentage;
 
           return (
             <React.Fragment key={phaseName}>
               <div
-                className="h-full flex items-center justify-center text-sm text-black" // 텍스트 색상 검정, 크기 조금 더 크게
+                className="h-full flex items-center justify-center text-base text-black"
                 style={{
                   width: `${widthPercentage}%`,
                   backgroundColor: phaseColors[phaseName]
                 }}
               >
-                {`${phaseName} (${phaseInfo.percentage}%, RoR: ${phaseInfo.avgRoR})`} {/* 시간 정보 제거 */}
+                {`${phaseName} (${phaseInfo.percentage}%, RoR: ${phaseInfo.avgRoR})`}
               </div>
-              {phaseName !== '1차크랙~배출' && ( // 마지막 단계 이후에는 시간 표시 안 함
+              {phaseName !== '1차크랙~배출' && (
                 <div
-                  className="absolute text-xs text-gray-700 transform -translate-x-1/2 translate-y-6"
-                  style={{ left: `${cumulativePercentage}%` }} // 누적 퍼센트 위치에 시간 표시
+                  className="absolute text-sm text-black transform -translate-x-1/2 translate-y-6"
+                  style={{ left: `${cumulativePercentage}%` }}
                 >
                   {(() => {
                     let endTimeSeconds = 0;
@@ -132,16 +129,8 @@ const ProfileDetailCard = React.memo(({ profile }) => {
             </React.Fragment>
           );
         })}
-        {profile.phases['1차크랙~배출'] && ( // 마지막 단계 끝나고 총 시간 표시
-          <div
-            className="absolute text-xs text-gray-700 transform -translate-x-1/2 translate-y-6"
-            style={{ left: `100%` }}
-          >
-            {profile.totalTime}
-          </div>
-        )}
+        {/* 하단의 total time 표시는 삭제되었습니다. */}
       </div>
-      {/* totalTime과 phase별 시간 정보 삭제 */}
     </div>
   );
 });
@@ -177,7 +166,6 @@ const RoastingAnalyzer = () => {
       return count > 0 ? Math.round(totalRoR / count) : 0;
     };
 
-
     data.forEach((row, index) => {
       const beanTemp = row['원두표면'];
       if (!temp160Point && beanTemp >= 160) {
@@ -194,7 +182,6 @@ const RoastingAnalyzer = () => {
     const totalSeconds = endPoint ? timeToSeconds(endPoint['시간']) : 0;
     const phase1End = temp160Point ? timeToSeconds(temp160Point['시간']) : 0;
     const phase2End = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) : 0;
-
 
     const phase1Duration = phase1End;
     const phase2Duration = phase2End - phase1End;
@@ -224,7 +211,7 @@ const RoastingAnalyzer = () => {
     return {
       fileName,
       phases,
-      phasesArray: Object.keys(phases), // 순서 유지
+      phasesArray: Object.keys(phases),
       totalTime: formatTime(totalSeconds)
     };
   }, []);
@@ -257,7 +244,6 @@ const RoastingAnalyzer = () => {
         alert(`Required columns ("시간", "원두표면") are missing or named incorrectly in file: ${file.name}. Please check your Excel file.`);
         return null;
       }
-
 
       const profile = analyzeProfile(jsonData, file.name);
       return profile;
@@ -308,11 +294,9 @@ const RoastingAnalyzer = () => {
     img.src = blobUrl;
   }, [contentRef]);
 
-
   const handleRemoveProfile = useCallback((fileNameToRemove) => {
     setProfiles(prevProfiles => prevProfiles.filter(profile => profile.fileName !== fileNameToRemove));
   }, []);
-
 
   return (
     <div className="max-w-4xl mx-auto p-6" ref={contentRef}>
