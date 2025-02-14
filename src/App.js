@@ -39,8 +39,11 @@ const TimelineBars = ({ profiles }) => {
                 }}
               >
                 <div className="px-2 text-xs text-white whitespace-nowrap">
-                  {phase.time} ({phase.percentage}%)(ROR: {phase.avgRoR})
-                </div>
+  {phaseIndex === 0 && `투입~160°C (${phase.time}, ROR: ${phase.avgRoR})`}
+  {phaseIndex === 1 && `160°C~1차크랙 (${phase.time}, ROR: ${phase.avgRoR})`}
+  {phaseIndex === 2 && `1차크랙~배출 (${phase.time}, ROR: ${phase.avgRoR})`}
+  {phase.percentage}%
+</div>
               </div>
             );
           })}
@@ -84,15 +87,6 @@ const ProfileDetailCard = ({ profile }) => (
             {phase.percentage}% (ROR: {phase.avgRoR})
           </div>
         ))}
-      </div>
-
-      <div className="text-sm flex mb-2">
-        <span className="w-32">160°C</span>
-        <span>{profile.temp160Time}</span>
-      </div>
-      <div className="text-sm flex mb-2">
-        <span className="w-32">1차 크랙(204°C)</span>
-        <span>{profile.firstCrackTime}</span>
       </div>
       <div className="text-sm flex">
         <span className="w-32">Total Time:</span>
