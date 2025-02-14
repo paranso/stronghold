@@ -252,4 +252,8 @@ const analyzeProfile = (data, fileName) => {
   };
 };
 
-export default RoastingAnalyzer;
+const App = () => {
+  return <RoastingAnalyzer />;
+};
+
+export default App;
