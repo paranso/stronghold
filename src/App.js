@@ -38,12 +38,9 @@ const TimelineBars = ({ profiles }) => {
                   backgroundColor: phaseColors[phaseIndex],
                 }}
               >
-                <div className="px-2 text-xs text-white whitespace-nowrap">
-  {phaseIndex === 0 && `투입~160°C (${phase.time}, ROR: ${phase.avgRoR})`}
-  {phaseIndex === 1 && `160°C~1차크랙 (${phase.time}, ROR: ${phase.avgRoR})`}
-  {phaseIndex === 2 && `1차크랙~배출 (${phase.time}, ROR: ${phase.avgRoR})`}
-  {phase.percentage}%
-</div>
+                <div className="flex items-center justify-center w-full h-full text-[10px] text-white whitespace-nowrap">
+                  {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
+                </div>
               </div>
             );
           })}
@@ -78,13 +75,13 @@ const ProfileDetailCard = ({ profile }) => (
         {profile.phases.map((phase, index) => (
           <div
             key={index}
-            className="h-full flex items-center justify-center text-white text-xs"
+            className="h-full flex items-center justify-center text-white text-[10px]"
             style={{
               width: `${phase.percentage}%`,
               backgroundColor: index === 0 ? 'rgb(100, 170, 255)' : index === 1 ? 'rgb(255, 140, 140)' : 'rgb(100, 210, 140)'
             }}
           >
-            {phase.percentage}% (ROR: {phase.avgRoR})
+            {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
           </div>
         ))}
       </div>
@@ -272,8 +269,6 @@ const analyzeProfile = (data, fileName) => {
 
   return {
     fileName,
-    temp160Time: `160°C / ${temp160Point['시간']}`,
-    firstCrackTime: `204°C / ${firstCrackPoint['시간']}`,
     phases: [
       {
         name: '투입~160°C',
