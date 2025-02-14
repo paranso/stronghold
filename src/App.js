@@ -23,7 +23,7 @@ const TimelineBars = React.memo(({ profiles }) => (
         <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
           {profile.fileName}
         </div>
-        {profile.phasesArray.map((phaseName) => {
+        {profile.phases.map((phase, phaseName) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
 
@@ -32,9 +32,6 @@ const TimelineBars = React.memo(({ profiles }) => (
           }, 0);
           const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
           const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
-          const endTimeInSeconds = startTimeInSeconds + phaseInfo.durationSeconds;
-          const endPercent = (endTimeInSeconds / maxTotalSeconds) * 100;
-
 
           return (
             <div
@@ -46,7 +43,7 @@ const TimelineBars = React.memo(({ profiles }) => (
                 backgroundColor: phaseColors[phaseName],
               }}
             >
-              <div className="flex items-center justify-center w-full h-full text-sm text-black whitespace-nowrap px-1">
+              <div className="flex items-center justify-center w-full h-full text-[11px] text-white whitespace-nowrap px-1">
                 {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
               </div>
             </div>
@@ -63,12 +60,6 @@ const TimelineBars = React.memo(({ profiles }) => (
         <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(8 * 60 / maxTotalSeconds) * 100}%` }} />
         <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(9 * 60 / maxTotalSeconds) * 100}%` }} />
         <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(10 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div
-          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-gray-700"
-          style={{ right: '0%' }}
-        >
-          {profile.totalTime}
-        </div>
       </div>
     ))}
 
@@ -86,64 +77,40 @@ const TimelineBars = React.memo(({ profiles }) => (
     </div>
   </div>
 ));
-TimelineBars.displayName = 'TimelineBars';
+TimelineBars.displayName = 'TimelineBars'; // React.memo with function component needs displayName for debugging
 
-const ProfileDetailCard = React.memo(({ profile }) => {
-  let cumulativePercentage = 0;
+const ProfileDetailCard = React.memo(({ profile }) => (
+  <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm">
+    <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
 
-  return (
-    <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm relative">
-      <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
-
-      <div className="w-full h-7 flex rounded-lg overflow-hidden mb-4 relative">
-        {profile.phasesArray.map((phaseName) => {
-          const phaseInfo = profile.phases[phaseName];
-          if (!phaseInfo) return null;
-          const widthPercentage = parseFloat(phaseInfo.percentage);
-          cumulativePercentage += widthPercentage;
-
-          return (
-            <React.Fragment key={phaseName}>
-              <div
-                className="h-full flex items-center justify-center text-sm text-black"
-                style={{
-                  width: `${widthPercentage}%`,
-                  backgroundColor: phaseColors[phaseName]
-                }}
-              >
-                {`${phaseName} (${phaseInfo.percentage}%, RoR: ${phaseInfo.avgRoR})`}
-              </div>
-              {phaseName !== '1차크랙~배출' && (
-                <div
-                  className="absolute text-xs text-gray-700 transform -translate-x-1/2 translate-y-6"
-                  style={{ left: `${cumulativePercentage}%` }}
-                >
-                  {(() => {
-                    let endTimeSeconds = 0;
-                    for (const name of profile.phasesArray) {
-                      if (name === phaseName) break;
-                      endTimeSeconds += (profile.phases[name]?.durationSeconds || 0);
-                    }
-                    endTimeSeconds += phaseInfo.durationSeconds;
-                    return formatTime(endTimeSeconds);
-                  })()}
-                </div>
-              )}
-            </React.Fragment>
-          );
-        })}
-        {profile.phases['1차크랙~배출'] && (
-          <div
-            className="absolute text-xs text-gray-700 transform -translate-x-1/2 translate-y-6"
-            style={{ left: `100%` }}
+    <div className="space-y-3">
+      <div className="w-full h-7 flex rounded-lg overflow-hidden mb-2">
+        {Object.entries(profile.phases).map(([phaseName, phaseInfo]) => (
+          phaseInfo && <div
+            key={phaseName}
+            className="h-full flex items-center justify-center text-white text-xs"
+            style={{
+              width: `${phaseInfo.percentage}%`,
+              backgroundColor: phaseColors[phaseName]
+            }}
           >
-            {profile.totalTime}
+            {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
           </div>
-        )}
+        ))}
       </div>
+      <div className="text-sm flex justify-between">
+        <span className="font-medium">Total Time:</span>
+        <span className="font-medium">{profile.totalTime}</span>
+      </div>
+      {Object.entries(profile.phases).map(([phaseName, phaseInfo]) => (
+        phaseInfo && <div key={phaseName} className="text-sm flex justify-between">
+          <span className="font-medium">{phaseName}:</span>
+          <span className="font-medium">{phaseInfo.time} (RoR: {phaseInfo.avgRoR})</span>
+        </div>
+      ))}
     </div>
-  );
-});
+  </div>
+));
 ProfileDetailCard.displayName = 'ProfileDetailCard';
 
 const RoastingAnalyzer = () => {
@@ -161,19 +128,19 @@ const RoastingAnalyzer = () => {
     };
 
     const calculateAvgRoR = (startIndex, endIndex) => {
-      if (startIndex >= endIndex) return 0;
+      if (startIndex >= endIndex) return 0; // Prevent division by zero and handle cases with no data points in phase
       let totalRoR = 0;
       let count = 0;
       for (let i = startIndex + 1; i <= endIndex; i++) {
         const prevTemp = data[i - 1]['원두표면'];
         const currentTemp = data[i]['원두표면'];
-        if (prevTemp !== undefined && currentTemp !== undefined) {
+        if (prevTemp !== undefined && currentTemp !== undefined) { // Check for undefined values
           const ror = ((currentTemp - prevTemp) * 60).toFixed(1);
           totalRoR += parseFloat(ror);
           count++;
         }
       }
-      return count > 0 ? Math.round(totalRoR / count) : 0;
+      return count > 0 ? Math.round(totalRoR / count) : 0; // Avoid NaN if count is zero
     };
 
 
@@ -210,9 +177,9 @@ const RoastingAnalyzer = () => {
         time: formatTime(phase2Duration),
         durationSeconds: phase2Duration,
         percentage: totalSeconds > 0 ? (phase2Duration / totalSeconds * 100).toFixed(1) : '0',
-        avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index)
+        avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index) // Use 0 if temp160Point is missing
       } : null,
-      '1차크랙~배출': endPoint && firstCrackPoint ? {
+      '1차크랙~배출': endPoint && firstCrackPoint ? { // Ensure endPoint and firstCrackPoint exist
         time: formatTime(phase3Duration),
         durationSeconds: phase3Duration,
         percentage: totalSeconds > 0 ? (phase3Duration / totalSeconds * 100).toFixed(1) : '0',
@@ -223,10 +190,10 @@ const RoastingAnalyzer = () => {
     return {
       fileName,
       phases,
-      phasesArray: Object.keys(phases),
+      phasesArray: Object.keys(phases), // Keep phase order
       totalTime: formatTime(totalSeconds)
     };
-  }, []);
+  }, []); // useCallback added, analyzeProfile memoized
 
   const handleFileUpload = useCallback(async (event) => {
     const files = Array.from(event.target.files);
@@ -243,18 +210,19 @@ const RoastingAnalyzer = () => {
 
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0]; // Get header row
+      const jsonData = XLSX.utils.sheet_to_json(worksheet); // Get data as JSON, header is auto-detected from the first row
 
+      // Check if required columns exist (case-insensitive)
       const requiredHeaders = ['시간', '원두표면'];
-      const normalizedHeaders = header.map(h => h.trim());
+      const normalizedHeaders = header.map(h => h.trim()); // Normalize header names
       const hasRequiredHeaders = requiredHeaders.every(requiredHeader =>
         normalizedHeaders.some(header => header.toLowerCase() === requiredHeader.toLowerCase())
       );
 
       if (!hasRequiredHeaders) {
         alert(`Required columns ("시간", "원두표면") are missing or named incorrectly in file: ${file.name}. Please check your Excel file.`);
-        return null;
+        return null; // Skip processing this file
       }
 
 
@@ -262,8 +230,8 @@ const RoastingAnalyzer = () => {
       return profile;
     }));
 
-    setProfiles(prevProfiles => [...prevProfiles, ...newProfiles.filter(profile => profile)]);
-  }, [analyzeProfile]);
+    setProfiles(prevProfiles => [...prevProfiles, ...newProfiles.filter(profile => profile)]); // Filter out null profiles
+  }, [analyzeProfile]); // useCallback added, handleFileUpload memoized, dependency on analyzeProfile
 
   const handleSaveAsImage = useCallback(() => {
     if (!contentRef.current) return;
@@ -272,12 +240,12 @@ const RoastingAnalyzer = () => {
     const context = canvas.getContext('2d');
     const element = contentRef.current;
 
-    const scale = 2;
+    const scale = 2; // Increase for better resolution
     canvas.width = element.offsetWidth * scale;
     canvas.height = element.offsetHeight * scale;
     context.scale(scale, scale);
     context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
+    context.fillRect(0, 0, canvas.width / scale, canvas.height / scale); // Fill with white background
 
     const svgData = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
@@ -305,7 +273,7 @@ const RoastingAnalyzer = () => {
     const URL = window.URL || window.webkitURL || window;
     const blobUrl = URL.createObjectURL(svgBlob);
     img.src = blobUrl;
-  }, [contentRef]);
+  }, [contentRef]); // useCallback added, handleSaveAsImage memoized, dependency on contentRef
 
 
   const handleRemoveProfile = useCallback((fileNameToRemove) => {
