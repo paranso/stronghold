@@ -20,16 +20,16 @@ const TimelineBars = React.memo(({ profiles }) => (
   <div className="w-full space-y-4 p-4">
     {profiles.map((profile) => (
       <div key={profile.fileName} className="relative h-7 mb-3">
-        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-base text-black whitespace-nowrap">
+        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
           {profile.fileName}
         </div>
         {profile.phasesArray.map((phaseName) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
 
-          const startTimeInSeconds = profile.phasesArray.slice(0, profile.phasesArray.indexOf(phaseName)).reduce((acc, name) => {
-            return acc + (profile.phases[name]?.durationSeconds || 0);
-          }, 0);
+          const startTimeInSeconds = profile.phasesArray
+            .slice(0, profile.phasesArray.indexOf(phaseName))
+            .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
           const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
           const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
 
@@ -43,8 +43,8 @@ const TimelineBars = React.memo(({ profiles }) => (
                 backgroundColor: phaseColors[phaseName],
               }}
             >
-              <div className="flex items-center justify-center w-full h-full text-base text-black whitespace-nowrap px-1">
-                {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
+              <div className="flex items-center justify-center w-full h-full text-sm text-black whitespace-nowrap px-1">
+                {`${phaseInfo.percentage}% (${phaseInfo.time}, ROR: ${phaseInfo.avgRoR})`}
               </div>
             </div>
           );
@@ -77,7 +77,7 @@ const TimelineBars = React.memo(({ profiles }) => (
           style={{ left: `${(i * 60 / maxTotalSeconds) * 100}%` }}
         >
           <div className="h-2 w-px bg-gray-300" />
-          <div className="text-sm text-black mt-1">{i}:00</div>
+          <div className="text-xs text-black mt-1">{i}:00</div>
         </div>
       ))}
     </div>
@@ -86,50 +86,60 @@ const TimelineBars = React.memo(({ profiles }) => (
 TimelineBars.displayName = 'TimelineBars';
 
 const ProfileDetailCard = React.memo(({ profile }) => {
-  let cumulativePercentage = 0;
+  // 전체 로스팅 시간을 초 단위로 재계산
+  const totalSeconds = Object.values(profile.phases).reduce((acc, phase) => phase ? acc + phase.durationSeconds : acc, 0);
+  let cumSeconds = 0;
+  const markers = [];
+  // 160°C 종료 지점
+  if (profile.phases['투입~160°C']) {
+    cumSeconds += profile.phases['투입~160°C'].durationSeconds;
+    markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
+  }
+  // 1차클랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
+  if (profile.phases['160°C~1차크랙']) {
+    cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
+    markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
+  }
+  // 배출 시점
+  if (profile.phases['1차크랙~배출']) {
+    cumSeconds += profile.phases['1차크랙~배출'].durationSeconds;
+    markers.push({ label: profile.totalTime, left: 100 });
+  }
 
   return (
     <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm relative">
       <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
 
-      <div className="w-full h-7 flex rounded-lg overflow-hidden mb-4 relative">
+      <div className="w-full h-7 flex rounded-lg overflow-hidden relative">
         {profile.phasesArray.map((phaseName) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
           const widthPercentage = parseFloat(phaseInfo.percentage);
-          cumulativePercentage += widthPercentage;
-
           return (
-            <React.Fragment key={phaseName}>
-              <div
-                className="h-full flex items-center justify-center text-base text-black"
-                style={{
-                  width: `${widthPercentage}%`,
-                  backgroundColor: phaseColors[phaseName]
-                }}
-              >
-                {`${phaseName} (${phaseInfo.percentage}%, RoR: ${phaseInfo.avgRoR})`}
-              </div>
-              {phaseName !== '1차크랙~배출' && (
-                <div
-                  className="absolute text-sm text-black transform -translate-x-1/2 translate-y-6"
-                  style={{ left: `${cumulativePercentage}%` }}
-                >
-                  {(() => {
-                    let endTimeSeconds = 0;
-                    for (const name of profile.phasesArray) {
-                      if (name === phaseName) break;
-                      endTimeSeconds += (profile.phases[name]?.durationSeconds || 0);
-                    }
-                    endTimeSeconds += phaseInfo.durationSeconds;
-                    return formatTime(endTimeSeconds);
-                  })()}
-                </div>
-              )}
-            </React.Fragment>
+            <div
+              key={phaseName}
+              className="h-full flex items-center justify-center text-sm text-black"
+              style={{
+                width: `${widthPercentage}%`,
+                backgroundColor: phaseColors[phaseName]
+              }}
+            >
+              {`${phaseInfo.percentage}% (${phaseInfo.time}, ROR: ${phaseInfo.avgRoR})`}
+            </div>
           );
         })}
-        {/* 하단의 total time 표시는 삭제되었습니다. */}
+      </div>
+      {/* 하단에 시간 마커 추가 */}
+      <div className="relative mt-2 h-4">
+        {markers.map((marker, index) => (
+          <div
+            key={index}
+            className="absolute text-xs text-black -translate-x-1/2"
+            style={{ left: `${marker.left}%` }}
+          >
+            {marker.label}
+          </div>
+        ))}
       </div>
     </div>
   );
