@@ -1,14 +1,14 @@
 import React, { useState, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const phaseColors = {
-  '투입~160°C': '#90EE90',
-  '160°C~1차크랙': '#FFFFE0',
-  '1차크랙~배출': '#D2B48C',
+  '투입~160°C': 'rgb(100, 170, 255)',
+  '160°C~1차크랙': 'rgb(255, 140, 140)',
+  '1차크랙~배출': 'rgb(100, 210, 140)',
 };
 
-const maxTotalSeconds = 10 * 60;
+const maxTotalSeconds = 10 * 60; // 10분
 
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);
@@ -16,97 +16,101 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
+const TimelineBars = React.memo(({ profiles }) => (
   <div className="w-full space-y-4 p-4">
-    {profiles.map((profile) => {
-      let cumSeconds = 0;
-      const markers = [];
-      if (profile.phases['투입~160°C']) {
-        cumSeconds += profile.phases['투입~160°C'].durationSeconds;
-        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
-      }
-      if (profile.phases['160°C~1차크랙']) {
-        cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
-        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
-      }
-      if (profile.phases['1차크랙~배출']) {
-        cumSeconds += profile.phases['1차크랙~배출'].durationSeconds;
-        markers.push({ label: profile.totalTime, left: (cumSeconds / maxTotalSeconds) * 100 });
-      }
-
-      return (
-        <div key={profile.fileName} className="relative h-11 mb-7">
-          <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
-            {profile.fileName}
-          </div>
-          {profile.phasesArray.map((phaseName) => {
-            const phaseInfo = profile.phases[phaseName];
-            if (!phaseInfo) return null;
-            const startTimeInSeconds = profile.phasesArray
-              .slice(0, profile.phasesArray.indexOf(phaseName))
-              .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
-            const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
-            const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
-            return (
-              <div
-                key={phaseName}
-                className="absolute h-full flex items-center"
-                style={{
-                  left: `${startPercent}%`,
-                  width: `${widthPercent}%`,
-                  backgroundColor: phaseColors[phaseName],
-                }}
-              >
-              </div>
-            );
-          })}
-          <div className="absolute top-full left-0 w-full flex justify-start items-start text-xs text-black mt-1">
-            {profile.phasesArray.map(phaseName => {
-              const phaseInfo = profile.phases[phaseName];
-              if (!phaseInfo) return null;
-              const startTimeInSeconds = profile.phasesArray
-                .slice(0, profile.phasesArray.indexOf(phaseName))
-                .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
-              const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
-              return (
-                <div
-                  key={phaseName}
-                  className="absolute"
-                  style={{ left: `${startPercent}%`, textAlign: 'left', transform: 'translateY(0.5em)' }}
-                >
-                  {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
-                </div>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => handleRemoveProfile(profile.fileName)}
-            className="absolute top-1/2 right-0 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
-            aria-label="Remove Profile"
-          >
-            <X size={16} />
-          </button>
-          <div className="relative mt-3 h-4">
-            {markers.map((marker, index) => (
-              <div
-                key={index}
-                className="absolute text-xs text-black -translate-x-1/2 top-0"
-                style={{ left: `${marker.left}%` }}
-              >
-                {marker.label}
-              </div>
-            ))}
-          </div>
+    {profiles.map((profile) => (
+      <div key={profile.fileName} className="relative h-7 mb-3">
+        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
+          {profile.fileName}
         </div>
-      );
-    })}
+        {profile.phases.map((phase, phaseName) => {
+          const phaseInfo = profile.phases[phaseName];
+          if (!phaseInfo) return null;
+
+          const startTimeInSeconds = profile.phasesArray.slice(0, profile.phasesArray.indexOf(phaseName)).reduce((acc, name) => {
+            return acc + (profile.phases[name]?.durationSeconds || 0);
+          }, 0);
+          const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
+          const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
+
+          return (
+            <div
+              key={phaseName}
+              className="absolute h-full flex items-center"
+              style={{
+                left: `${startPercent}%`,
+                width: `${widthPercent}%`,
+                backgroundColor: phaseColors[phaseName],
+              }}
+            >
+              <div className="flex items-center justify-center w-full h-full text-[11px] text-white whitespace-nowrap px-1">
+                {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
+              </div>
+            </div>
+          );
+        })}
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: '0%' }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(1 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(2 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(3 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(4 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(5 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(6 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(7 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(8 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(9 * 60 / maxTotalSeconds) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(10 * 60 / maxTotalSeconds) * 100}%` }} />
+      </div>
+    ))}
+
+    <div className="relative h-6 border-t mt-2">
+      {Array.from({ length: 11 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute -top-3 transform -translate-x-1/2"
+          style={{ left: `${(i * 60 / maxTotalSeconds) * 100}%` }}
+        >
+          <div className="h-2 w-px bg-gray-300" />
+          <div className="text-xs text-gray-500 mt-1">{i}:00</div>
+        </div>
+      ))}
+    </div>
   </div>
 ));
-TimelineBars.displayName = 'TimelineBars';
+TimelineBars.displayName = 'TimelineBars'; // React.memo with function component needs displayName for debugging
 
-const ProfileDetailCard = React.memo(({ profile }) => {
-  return null;
-});
+const ProfileDetailCard = React.memo(({ profile }) => (
+  <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm">
+    <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
+
+    <div className="space-y-3">
+      <div className="w-full h-7 flex rounded-lg overflow-hidden mb-2">
+        {Object.entries(profile.phases).map(([phaseName, phaseInfo]) => (
+          phaseInfo && <div
+            key={phaseName}
+            className="h-full flex items-center justify-center text-white text-xs"
+            style={{
+              width: `${phaseInfo.percentage}%`,
+              backgroundColor: phaseColors[phaseName]
+            }}
+          >
+            {`${phaseName} (${phaseInfo.percentage}%, ${phaseInfo.time}, RoR: ${phaseInfo.avgRoR})`}
+          </div>
+        ))}
+      </div>
+      <div className="text-sm flex justify-between">
+        <span className="font-medium">Total Time:</span>
+        <span className="font-medium">{profile.totalTime}</span>
+      </div>
+      {Object.entries(profile.phases).map(([phaseName, phaseInfo]) => (
+        phaseInfo && <div key={phaseName} className="text-sm flex justify-between">
+          <span className="font-medium">{phaseName}:</span>
+          <span className="font-medium">{phaseInfo.time} (RoR: {phaseInfo.avgRoR})</span>
+        </div>
+      ))}
+    </div>
+  </div>
+));
 ProfileDetailCard.displayName = 'ProfileDetailCard';
 
 const RoastingAnalyzer = () => {
@@ -117,7 +121,6 @@ const RoastingAnalyzer = () => {
     let temp160Point = null;
     let firstCrackPoint = null;
     let endPoint = null;
-    let phase1End = null; // phase1End 변수 초기화 (null)
 
     const timeToSeconds = (timeStr) => {
       const [minutes, seconds] = timeStr.split(':').map(Number);
@@ -125,20 +128,21 @@ const RoastingAnalyzer = () => {
     };
 
     const calculateAvgRoR = (startIndex, endIndex) => {
-      if (startIndex >= endIndex) return 0;
+      if (startIndex >= endIndex) return 0; // Prevent division by zero and handle cases with no data points in phase
       let totalRoR = 0;
       let count = 0;
       for (let i = startIndex + 1; i <= endIndex; i++) {
         const prevTemp = data[i - 1]['원두표면'];
         const currentTemp = data[i]['원두표면'];
-        if (prevTemp !== undefined && currentTemp !== undefined) {
+        if (prevTemp !== undefined && currentTemp !== undefined) { // Check for undefined values
           const ror = ((currentTemp - prevTemp) * 60).toFixed(1);
           totalRoR += parseFloat(ror);
           count++;
         }
       }
-      return count > 0 ? Math.round(totalRoR / count) : 0;
+      return count > 0 ? Math.round(totalRoR / count) : 0; // Avoid NaN if count is zero
     };
+
 
     data.forEach((row, index) => {
       const beanTemp = row['원두표면'];
@@ -154,10 +158,13 @@ const RoastingAnalyzer = () => {
     });
 
     const totalSeconds = endPoint ? timeToSeconds(endPoint['시간']) : 0;
-    const phase1Duration = phase1End ? timeToSeconds(temp160Point['시간']) - 0 : 0; // 명시적으로 계산 (이제 phase1End는 null 또는 값을 가짐)
-    const phase2Duration = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) - phase1Duration : 0; // 명시적으로 계산
-    const phase3Duration = endPoint && firstCrackPoint ? totalSeconds - phase2Duration - phase1Duration : 0; // 명시적으로 계산
+    const phase1End = temp160Point ? timeToSeconds(temp160Point['시간']) : 0;
+    const phase2End = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) : 0;
 
+
+    const phase1Duration = phase1End;
+    const phase2Duration = phase2End - phase1End;
+    const phase3Duration = totalSeconds - phase2End;
 
     const phases = {
       '투입~160°C': temp160Point ? {
@@ -170,9 +177,9 @@ const RoastingAnalyzer = () => {
         time: formatTime(phase2Duration),
         durationSeconds: phase2Duration,
         percentage: totalSeconds > 0 ? (phase2Duration / totalSeconds * 100).toFixed(1) : '0',
-        avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index)
+        avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index) // Use 0 if temp160Point is missing
       } : null,
-      '1차크랙~배출': endPoint && firstCrackPoint ? {
+      '1차크랙~배출': endPoint && firstCrackPoint ? { // Ensure endPoint and firstCrackPoint exist
         time: formatTime(phase3Duration),
         durationSeconds: phase3Duration,
         percentage: totalSeconds > 0 ? (phase3Duration / totalSeconds * 100).toFixed(1) : '0',
@@ -183,10 +190,10 @@ const RoastingAnalyzer = () => {
     return {
       fileName,
       phases,
-      phasesArray: Object.keys(phases),
+      phasesArray: Object.keys(phases), // Keep phase order
       totalTime: formatTime(totalSeconds)
     };
-  }, []);
+  }, []); // useCallback added, analyzeProfile memoized
 
   const handleFileUpload = useCallback(async (event) => {
     const files = Array.from(event.target.files);
@@ -203,26 +210,28 @@ const RoastingAnalyzer = () => {
 
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0]; // Get header row
+      const jsonData = XLSX.utils.sheet_to_json(worksheet); // Get data as JSON, header is auto-detected from the first row
 
+      // Check if required columns exist (case-insensitive)
       const requiredHeaders = ['시간', '원두표면'];
-      const normalizedHeaders = header.map(h => h.trim());
+      const normalizedHeaders = header.map(h => h.trim()); // Normalize header names
       const hasRequiredHeaders = requiredHeaders.every(requiredHeader =>
         normalizedHeaders.some(header => header.toLowerCase() === requiredHeader.toLowerCase())
       );
 
       if (!hasRequiredHeaders) {
         alert(`Required columns ("시간", "원두표면") are missing or named incorrectly in file: ${file.name}. Please check your Excel file.`);
-        return null;
+        return null; // Skip processing this file
       }
+
 
       const profile = analyzeProfile(jsonData, file.name);
       return profile;
     }));
 
-    setProfiles(prevProfiles => [...prevProfiles, ...newProfiles.filter(profile => profile)]);
-  }, [analyzeProfile]);
+    setProfiles(prevProfiles => [...prevProfiles, ...newProfiles.filter(profile => profile)]); // Filter out null profiles
+  }, [analyzeProfile]); // useCallback added, handleFileUpload memoized, dependency on analyzeProfile
 
   const handleSaveAsImage = useCallback(() => {
     if (!contentRef.current) return;
@@ -231,12 +240,12 @@ const RoastingAnalyzer = () => {
     const context = canvas.getContext('2d');
     const element = contentRef.current;
 
-    const scale = 2;
+    const scale = 2; // Increase for better resolution
     canvas.width = element.offsetWidth * scale;
     canvas.height = element.offsetHeight * scale;
     context.scale(scale, scale);
     context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
+    context.fillRect(0, 0, canvas.width / scale, canvas.height / scale); // Fill with white background
 
     const svgData = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
@@ -264,11 +273,13 @@ const RoastingAnalyzer = () => {
     const URL = window.URL || window.webkitURL || window;
     const blobUrl = URL.createObjectURL(svgBlob);
     img.src = blobUrl;
-  }, [contentRef]);
+  }, [contentRef]); // useCallback added, handleSaveAsImage memoized, dependency on contentRef
+
 
   const handleRemoveProfile = useCallback((fileNameToRemove) => {
     setProfiles(prevProfiles => prevProfiles.filter(profile => profile.fileName !== fileNameToRemove));
   }, []);
+
 
   return (
     <div className="max-w-4xl mx-auto p-6" ref={contentRef}>
@@ -299,7 +310,22 @@ const RoastingAnalyzer = () => {
             </button>
           </div>
           <div className="mb-8 border rounded-lg bg-white shadow-md">
-            <TimelineBars profiles={profiles} handleRemoveProfile={handleRemoveProfile} />
+            <TimelineBars profiles={profiles} />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            {profiles.map((profile) => (
+              <div key={profile.fileName} className="relative">
+                <ProfileDetailCard profile={profile} />
+                <button
+                  onClick={() => handleRemoveProfile(profile.fileName)}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 6.707a1 1 0 011.414 0L10 8.586l3.293-1.879a1 1 0 111.414 1.414L11.414 10l3.293 1.879a1 1 0 01-1.414 1.414L10 11.414l-3.293 1.879a1 1 0 01-1.414-1.414L8.586 10 5.293 11.879a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
