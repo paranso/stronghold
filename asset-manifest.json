@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/stronghold/static/js/main.fa28d15b.js",
+    "main.js": "/stronghold/static/js/main.af31843a.js",
     "index.html": "/stronghold/index.html",
-    "main.fa28d15b.js.map": "/stronghold/static/js/main.fa28d15b.js.map"
+    "main.af31843a.js.map": "/stronghold/static/js/main.af31843a.js.map"
   },
   "entrypoints": [
-    "static/js/main.fa28d15b.js"
+    "static/js/main.af31843a.js"
   ]
 }
