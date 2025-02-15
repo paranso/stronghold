@@ -1,5 +1,3 @@
---- START OF FILE App (5).js ---
-
 import React, { useState, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
