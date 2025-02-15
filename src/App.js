@@ -3,12 +3,12 @@ import * as XLSX from 'xlsx';
 import { Download, X } from 'lucide-react';
 
 const phaseColors = {
-  '투입~160°C': '#90EE90', // 진한 연두색 (LightGreen, opacity 제거)
-  '160°C~1차크랙': '#FFFFE0', // 진한 연한 노란색 (LightYellow, opacity 제거)
-  '1차크랙~배출': '#D2B48C', // 진한 베이지색 (Tan, opacity 제거)
+  '투입~160°C': '#90EE90',
+  '160°C~1차크랙': '#FFFFE0',
+  '1차크랙~배출': '#D2B48C',
 };
 
-const maxTotalSeconds = 10 * 60; // 10분
+const maxTotalSeconds = 10 * 60;
 
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);
@@ -21,24 +21,21 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
     {profiles.map((profile) => {
       let cumSeconds = 0;
       const markers = [];
-      // 160°C 종료 지점
       if (profile.phases['투입~160°C']) {
         cumSeconds += profile.phases['투입~160°C'].durationSeconds;
         markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
       }
-      // 1차크랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
       if (profile.phases['160°C~1차크랙']) {
         cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
         markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
       }
-      // 배출 시점
       if (profile.phases['1차크랙~배출']) {
         cumSeconds += profile.phases['1차크랙~배출'].durationSeconds;
         markers.push({ label: profile.totalTime, left: (cumSeconds / maxTotalSeconds) * 100 });
       }
 
       return (
-        <div key={profile.fileName} className="relative h-11 mb-7"> {/* h-11, mb-5 -> mb-7 (시간 표시 공간 확보 및 간격 조정) */}
+        <div key={profile.fileName} className="relative h-11 mb-7">
           <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
             {profile.fileName}
           </div>
@@ -57,14 +54,13 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
                 style={{
                   left: `${startPercent}%`,
                   width: `${widthPercent}%`,
-                  backgroundColor: phaseColors[phaseName], // opacity 제거
+                  backgroundColor: phaseColors[phaseName],
                 }}
               >
               </div>
             );
           })}
-          {/* 구간별 시간 정보 (그래프 바깥 아래쪽으로 이동 및 위치 조정) */}
-          <div className="absolute top-full left-0 w-full flex justify-start items-start text-xs text-black mt-1"> {/* justify-between -> justify-start, items-start, mt-1 추가 */}
+          <div className="absolute top-full left-0 w-full flex justify-start items-start text-xs text-black mt-1">
             {profile.phasesArray.map(phaseName => {
               const phaseInfo = profile.phases[phaseName];
               if (!phaseInfo) return null;
@@ -76,21 +72,13 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
                 <div
                   key={phaseName}
                   className="absolute"
-                  style={{ left: `${startPercent}%`, textAlign: 'left', transform: 'translateY(0.5em)' }} // translateY 조정
+                  style={{ left: `${startPercent}%`, textAlign: 'left', transform: 'translateY(0.5em)' }}
                 >
                   {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
                 </div>
               );
             })}
           </div>
-          {/* 전체 시간 표시 제거 */}
-          {/* <div
-            className="absolute top-1/2 right-8 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
-            style={{ right: '0%' }}
-          >
-            {profile.totalTime}
-          </div> */}
-          {/* 삭제 버튼 */}
           <button
             onClick={() => handleRemoveProfile(profile.fileName)}
             className="absolute top-1/2 right-0 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
@@ -98,12 +86,11 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
           >
             <X size={16} />
           </button>
-          {/* 하단 시간 마커 위치 조정 */}
-          <div className="relative mt-3 h-4">  {/* mt-2 -> mt-3 (시간 마커 위치 조정) */}
+          <div className="relative mt-3 h-4">
             {markers.map((marker, index) => (
               <div
                 key={index}
-                className="absolute text-xs text-black -translate-x-1/2 top-0" // bottom-0 -> top-0 (시간 마커 위치 조정)
+                className="absolute text-xs text-black -translate-x-1/2 top-0"
                 style={{ left: `${marker.left}%` }}
               >
                 {marker.label}
@@ -166,26 +153,27 @@ const RoastingAnalyzer = () => {
     });
 
     const totalSeconds = endPoint ? timeToSeconds(endPoint['시간']) : 0;
-    const phase1End = temp160Point ? timeToSeconds(temp160Point['시간']) : 0;
-    const phase2End = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) : 0;
-    const phase3Duration = totalSeconds - phase2End;
+    const phase1Duration = phase1End ? timeToSeconds(temp160Point['시간']) - 0 : 0; // 명시적으로 계산
+    const phase2Duration = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) - phase1Duration : 0; // 명시적으로 계산
+    const phase3Duration = endPoint && firstCrackPoint ? totalSeconds - phase2Duration - phase1Duration : 0; // 명시적으로 계산
+
 
     const phases = {
       '투입~160°C': temp160Point ? {
         time: formatTime(phase1Duration),
-        durationSeconds: phase1Duration,
+        durationSeconds: phase1Duration, // 명시적 할당
         percentage: totalSeconds > 0 ? (phase1Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(0, temp160Point.index)
       } : null,
       '160°C~1차크랙': firstCrackPoint ? {
         time: formatTime(phase2Duration),
-        durationSeconds: phase2Duration,
+        durationSeconds: phase2Duration, // 명시적 할당
         percentage: totalSeconds > 0 ? (phase2Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index)
       } : null,
       '1차크랙~배출': endPoint && firstCrackPoint ? {
         time: formatTime(phase3Duration),
-        durationSeconds: phase3Duration,
+        durationSeconds: phase3Duration, // 명시적 할당
         percentage: totalSeconds > 0 ? (phase3Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(firstCrackPoint.index, endPoint.index)
       } : null,
