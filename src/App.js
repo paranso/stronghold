@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { Download, X } from 'lucide-react'; // X 아이콘 추가 (삭제 버튼에 사용)
+import { Download, X } from 'lucide-react';
 
 const phaseColors = {
-  '투입~160°C': 'rgba(144, 238, 144, 0.7)', // 연한 초록색 (LightGreen with opacity)
-  '160°C~1차크랙': 'rgba(255, 255, 224, 0.7)', // 연한 노란색 (LightYellow with opacity)
-  '1차크랙~배출': 'rgba(210, 180, 140, 0.7)', // 연한 갈색 (Tan with opacity)
+  '투입~160°C': 'rgba(144, 238, 144, 1)', // 더 진한 초록색 (opacity: 1로 변경)
+  '160°C~1차크랙': 'rgba(255, 255, 224, 1)', // 더 진한 노란색 (opacity: 1로 변경)
+  '1차크랙~배출': 'rgba(210, 180, 140, 1)', // 더 진한 갈색 (opacity: 1로 변경)
 };
 
 const maxTotalSeconds = 10 * 60; // 10분
@@ -16,7 +16,7 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // handleRemoveProfile prop 추가
+const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => (
   <div className="w-full space-y-4 p-4">
     {profiles.map((profile) => {
       let cumSeconds = 0;
@@ -24,21 +24,21 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // hand
       // 160°C 종료 지점
       if (profile.phases['투입~160°C']) {
         cumSeconds += profile.phases['투입~160°C'].durationSeconds;
-        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 }); // maxTotalSeconds 기준
+        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
       }
       // 1차크랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
       if (profile.phases['160°C~1차크랙']) {
         cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
-        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 }); // maxTotalSeconds 기준
+        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / maxTotalSeconds) * 100 });
       }
       // 배출 시점
       if (profile.phases['1차크랙~배출']) {
         cumSeconds += profile.phases['1차크랙~배출'].durationSeconds;
-        markers.push({ label: profile.totalTime, left: (cumSeconds / maxTotalSeconds) * 100 }); // maxTotalSeconds 기준
+        markers.push({ label: profile.totalTime, left: (cumSeconds / maxTotalSeconds) * 100 });
       }
 
       return (
-        <div key={profile.fileName} className="relative h-9 mb-5">
+        <div key={profile.fileName} className="relative h-11 mb-5"> {/* h-9 -> h-11 (시간 표시 공간 확보) */}
           <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
             {profile.fileName}
           </div>
@@ -60,20 +60,42 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // hand
                   backgroundColor: phaseColors[phaseName],
                 }}
               >
-                <div className="flex items-center justify-start w-full h-full text-xs text-black whitespace-nowrap px-1">
+                {/* 구간별 시간 정보 (그래프 안쪽 표시 제거) */}
+                {/* <div className="flex items-center justify-start w-full h-full text-xs text-black whitespace-nowrap px-1">
                   {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
-                </div>
+                </div> */}
               </div>
             );
           })}
+          {/* 구간별 시간 정보 (그래프 바깥 아래쪽 표시) */}
+          <div className="absolute top-full left-0 w-full flex justify-between text-xs text-black">
+            {profile.phasesArray.map(phaseName => {
+              const phaseInfo = profile.phases[phaseName];
+              if (!phaseInfo) return null;
+              const startTimeInSeconds = profile.phasesArray
+                .slice(0, profile.phasesArray.indexOf(phaseName))
+                .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
+              const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
+              const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
+              return (
+                <div
+                  key={phaseName}
+                  className="absolute"
+                  style={{ left: `${startPercent}%`, width: `${widthPercent}%`, textAlign: 'left' }}
+                >
+                  {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
+                </div>
+              );
+            })}
+          </div>
           {/* 오른쪽에 전체 소요시간 표시 */}
           <div
-            className="absolute top-1/2 right-8 transform translate-x-1/2 -translate-y-1/2 text-xs text-black" // right-0 -> right-8 (삭제 버튼 공간 확보)
+            className="absolute top-1/2 right-8 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
             style={{ right: '0%' }}
           >
             {profile.totalTime}
           </div>
-          {/* 삭제 버튼 추가 */}
+          {/* 삭제 버튼 */}
           <button
             onClick={() => handleRemoveProfile(profile.fileName)}
             className="absolute top-1/2 right-0 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
@@ -81,12 +103,12 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // hand
           >
             <X size={16} />
           </button>
-          {/* 하단에 시간 마커 추가 (TimelineBars 에 추가) */}
+          {/* 하단에 시간 마커 */}
           <div className="relative mt-2 h-4">
             {markers.map((marker, index) => (
               <div
                 key={index}
-                className="absolute text-xs text-black -translate-x-1/2 bottom-0" // bottom-0 추가
+                className="absolute text-xs text-black -translate-x-1/2 bottom-0"
                 style={{ left: `${marker.left}%` }}
               >
                 {marker.label}
@@ -101,8 +123,8 @@ const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // hand
 TimelineBars.displayName = 'TimelineBars';
 
 const ProfileDetailCard = React.memo(({ profile }) => {
-  // ProfileDetailCard 컴포넌트는 이제 사용하지 않지만, 혹시 몰라 코드는 남겨둠
-  return null; // ProfileDetailCard 렌더링 안함
+  // ProfileDetailCard 컴포넌트는 이제 사용하지 않음
+  return null;
 });
 ProfileDetailCard.displayName = 'ProfileDetailCard';
 
@@ -152,9 +174,6 @@ const RoastingAnalyzer = () => {
     const totalSeconds = endPoint ? timeToSeconds(endPoint['시간']) : 0;
     const phase1End = temp160Point ? timeToSeconds(temp160Point['시간']) : 0;
     const phase2End = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) : 0;
-
-    const phase1Duration = phase1End;
-    const phase2Duration = phase2End - phase1End;
     const phase3Duration = totalSeconds - phase2End;
 
     const phases = {
@@ -195,6 +214,7 @@ const RoastingAnalyzer = () => {
         cellStyles: true,
         cellFormulas: true,
         cellDates: true,
+        cellNF: true,
         cellNF: true,
         sheetStubs: true
       });
@@ -264,6 +284,7 @@ const RoastingAnalyzer = () => {
     img.src = blobUrl;
   }, [contentRef]);
 
+
   const handleRemoveProfile = useCallback((fileNameToRemove) => {
     setProfiles(prevProfiles => prevProfiles.filter(profile => profile.fileName !== fileNameToRemove));
   }, []);
@@ -297,9 +318,8 @@ const RoastingAnalyzer = () => {
             </button>
           </div>
           <div className="mb-8 border rounded-lg bg-white shadow-md">
-            <TimelineBars profiles={profiles} handleRemoveProfile={handleRemoveProfile} /> {/* handleRemoveProfile props로 전달 */}
+            <TimelineBars profiles={profiles} handleRemoveProfile={handleRemoveProfile} />
           </div>
-          {/* 하단 개별 그래프 영역 제거 */}
         </div>
       )}
     </div>
