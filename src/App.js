@@ -26,13 +26,11 @@ const TimelineBars = React.memo(({ profiles }) => (
         {profile.phasesArray.map((phaseName) => {
           const phaseInfo = profile.phases[phaseName];
           if (!phaseInfo) return null;
-
           const startTimeInSeconds = profile.phasesArray
             .slice(0, profile.phasesArray.indexOf(phaseName))
             .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
           const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
           const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
-
           return (
             <div
               key={phaseName}
@@ -43,44 +41,21 @@ const TimelineBars = React.memo(({ profiles }) => (
                 backgroundColor: phaseColors[phaseName],
               }}
             >
-              <div className="flex items-center justify-center w-full h-full text-sm text-black whitespace-nowrap px-1">
-                {`${phaseInfo.percentage}% (${phaseInfo.time}, ROR: ${phaseInfo.avgRoR})`}
+              <div className="flex items-center justify-start w-full h-full text-xs text-black whitespace-nowrap px-1">
+                {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
               </div>
             </div>
           );
         })}
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: '0%' }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(1 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(2 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(3 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(4 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(5 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(6 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(7 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(8 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(9 * 60 / maxTotalSeconds) * 100}%` }} />
-        <div className="absolute top-0 left-0 h-full border-l border-gray-200" style={{ left: `${(10 * 60 / maxTotalSeconds) * 100}%` }} />
+        {/* 오른쪽에 전체 소요시간 표시 */}
         <div
-          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-sm text-black"
+          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
           style={{ right: '0%' }}
         >
           {profile.totalTime}
         </div>
       </div>
     ))}
-
-    <div className="relative h-6 border-t mt-2">
-      {Array.from({ length: 11 }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute -top-3 transform -translate-x-1/2"
-          style={{ left: `${(i * 60 / maxTotalSeconds) * 100}%` }}
-        >
-          <div className="h-2 w-px bg-gray-300" />
-          <div className="text-xs text-black mt-1">{i}:00</div>
-        </div>
-      ))}
-    </div>
   </div>
 ));
 TimelineBars.displayName = 'TimelineBars';
@@ -95,7 +70,7 @@ const ProfileDetailCard = React.memo(({ profile }) => {
     cumSeconds += profile.phases['투입~160°C'].durationSeconds;
     markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
   }
-  // 1차클랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
+  // 1차크랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
   if (profile.phases['160°C~1차크랙']) {
     cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
     markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
@@ -118,13 +93,13 @@ const ProfileDetailCard = React.memo(({ profile }) => {
           return (
             <div
               key={phaseName}
-              className="h-full flex items-center justify-center text-sm text-black"
+              className="h-full flex items-center justify-start text-xs text-black"
               style={{
                 width: `${widthPercentage}%`,
                 backgroundColor: phaseColors[phaseName]
               }}
             >
-              {`${phaseInfo.percentage}% (${phaseInfo.time}, ROR: ${phaseInfo.avgRoR})`}
+              {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
             </div>
           );
         })}
