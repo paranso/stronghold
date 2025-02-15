@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react'; // X 아이콘 추가 (삭제 버튼에 사용)
 
 const phaseColors = {
   '투입~160°C': 'rgba(144, 238, 144, 0.7)', // 연한 초록색 (LightGreen with opacity)
@@ -16,11 +16,9 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const TimelineBars = React.memo(({ profiles }) => (
+const TimelineBars = React.memo(({ profiles, handleRemoveProfile }) => ( // handleRemoveProfile prop 추가
   <div className="w-full space-y-4 p-4">
     {profiles.map((profile) => {
-      // 전체 로스팅 시간을 초 단위로 재계산 (TimelineBars 내부에서 계산)
-      const totalSeconds = Object.values(profile.phases).reduce((acc, phase) => phase ? acc + phase.durationSeconds : acc, 0);
       let cumSeconds = 0;
       const markers = [];
       // 160°C 종료 지점
@@ -39,9 +37,8 @@ const TimelineBars = React.memo(({ profiles }) => (
         markers.push({ label: profile.totalTime, left: (cumSeconds / maxTotalSeconds) * 100 }); // maxTotalSeconds 기준
       }
 
-
       return (
-        <div key={profile.fileName} className="relative h-9 mb-5"> {/* h-7 -> h-9, mb-3 -> mb-5 */}
+        <div key={profile.fileName} className="relative h-9 mb-5">
           <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
             {profile.fileName}
           </div>
@@ -71,11 +68,19 @@ const TimelineBars = React.memo(({ profiles }) => (
           })}
           {/* 오른쪽에 전체 소요시간 표시 */}
           <div
-            className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
+            className="absolute top-1/2 right-8 transform translate-x-1/2 -translate-y-1/2 text-xs text-black" // right-0 -> right-8 (삭제 버튼 공간 확보)
             style={{ right: '0%' }}
           >
             {profile.totalTime}
           </div>
+          {/* 삭제 버튼 추가 */}
+          <button
+            onClick={() => handleRemoveProfile(profile.fileName)}
+            className="absolute top-1/2 right-0 transform -translate-y-1/2 text-gray-500 hover:text-red-500"
+            aria-label="Remove Profile"
+          >
+            <X size={16} />
+          </button>
           {/* 하단에 시간 마커 추가 (TimelineBars 에 추가) */}
           <div className="relative mt-2 h-4">
             {markers.map((marker, index) => (
@@ -292,7 +297,7 @@ const RoastingAnalyzer = () => {
             </button>
           </div>
           <div className="mb-8 border rounded-lg bg-white shadow-md">
-            <TimelineBars profiles={profiles} />
+            <TimelineBars profiles={profiles} handleRemoveProfile={handleRemoveProfile} /> {/* handleRemoveProfile props로 전달 */}
           </div>
           {/* 하단 개별 그래프 영역 제거 */}
         </div>
