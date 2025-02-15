@@ -17,109 +17,80 @@ const formatTime = (seconds) => {
 };
 
 const TimelineBars = React.memo(({ profiles }) => (
-  <div className="w-full space-y-4 p-4">
-    {profiles.map((profile) => (
-      <div key={profile.fileName} className="relative h-7 mb-3">
-        <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
-          {profile.fileName}
-        </div>
-        {profile.phasesArray.map((phaseName) => {
-          const phaseInfo = profile.phases[phaseName];
-          if (!phaseInfo) return null;
-          const startTimeInSeconds = profile.phasesArray
-            .slice(0, profile.phasesArray.indexOf(phaseName))
-            .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
-          const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
-          const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
-          return (
-            <div
-              key={phaseName}
-              className="absolute h-full flex items-center"
-              style={{
-                left: `${startPercent}%`,
-                width: `${widthPercent}%`,
-                backgroundColor: phaseColors[phaseName],
-              }}
-            >
-              <div className="flex items-center justify-start w-full h-full text-xs text-black whitespace-nowrap px-1">
-                {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
-              </div>
+  <div className="w-full space-y-6 p-4">
+    {profiles.map((profile) => {
+      // 각 프로파일의 총 소요 시간을 초 단위로 계산
+      const totalSeconds = Object.values(profile.phases).reduce(
+        (acc, phase) => (phase ? acc + phase.durationSeconds : acc),
+        0
+      );
+      let cumSeconds = 0;
+      const markers = [];
+      // 첫 구간(투입~160°C)의 종료 지점
+      if (profile.phases['투입~160°C']) {
+        cumSeconds += profile.phases['투입~160°C'].durationSeconds;
+        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
+      }
+      // 두 번째 구간(160°C~1차크랙)의 종료 지점
+      if (profile.phases['160°C~1차크랙']) {
+        cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
+        markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
+      }
+      return (
+        <div key={profile.fileName} className="mb-6">
+          <div className="relative h-7">
+            <div className="absolute top-1/2 -left-5 transform -translate-x-full -translate-y-1/2 text-sm text-black whitespace-nowrap">
+              {profile.fileName}
             </div>
-          );
-        })}
-        {/* 오른쪽에 전체 소요시간 표시 */}
-        <div
-          className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
-          style={{ right: '0%' }}
-        >
-          {profile.totalTime}
+            {profile.phasesArray.map((phaseName) => {
+              const phaseInfo = profile.phases[phaseName];
+              if (!phaseInfo) return null;
+              const startTimeInSeconds = profile.phasesArray
+                .slice(0, profile.phasesArray.indexOf(phaseName))
+                .reduce((acc, name) => acc + (profile.phases[name]?.durationSeconds || 0), 0);
+              const startPercent = (startTimeInSeconds / maxTotalSeconds) * 100;
+              const widthPercent = (phaseInfo.durationSeconds / maxTotalSeconds) * 100;
+              return (
+                <div
+                  key={phaseName}
+                  className="absolute h-full flex items-center"
+                  style={{
+                    left: `${startPercent}%`,
+                    width: `${widthPercent}%`,
+                    backgroundColor: phaseColors[phaseName],
+                  }}
+                >
+                  <div className="flex items-center justify-start w-full h-full text-xs text-black whitespace-nowrap px-1">
+                    {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
+                  </div>
+                </div>
+              );
+            })}
+            <div
+              className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-black"
+              style={{ right: '0%' }}
+            >
+              {profile.totalTime}
+            </div>
+          </div>
+          {/* 각 구간 전환 시점(160도, 1차 지점)의 시간을 막대 바로 아래에 표시 */}
+          <div className="relative mt-1 h-4">
+            {markers.map((marker, index) => (
+              <div
+                key={index}
+                className="absolute text-xs text-black -translate-x-1/2"
+                style={{ left: `${marker.left}%` }}
+              >
+                {marker.label}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    ))}
+      );
+    })}
   </div>
 ));
 TimelineBars.displayName = 'TimelineBars';
-
-const ProfileDetailCard = React.memo(({ profile }) => {
-  // 전체 로스팅 시간을 초 단위로 재계산
-  const totalSeconds = Object.values(profile.phases).reduce((acc, phase) => phase ? acc + phase.durationSeconds : acc, 0);
-  let cumSeconds = 0;
-  const markers = [];
-  // 160°C 종료 지점
-  if (profile.phases['투입~160°C']) {
-    cumSeconds += profile.phases['투입~160°C'].durationSeconds;
-    markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
-  }
-  // 1차크랙 시작 지점 (즉, 160°C~1차크랙 종료 지점)
-  if (profile.phases['160°C~1차크랙']) {
-    cumSeconds += profile.phases['160°C~1차크랙'].durationSeconds;
-    markers.push({ label: formatTime(cumSeconds), left: (cumSeconds / totalSeconds) * 100 });
-  }
-  // 배출 시점
-  if (profile.phases['1차크랙~배출']) {
-    cumSeconds += profile.phases['1차크랙~배출'].durationSeconds;
-    markers.push({ label: profile.totalTime, left: 100 });
-  }
-
-  return (
-    <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm relative">
-      <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
-
-      <div className="w-full h-7 flex rounded-lg overflow-hidden relative">
-        {profile.phasesArray.map((phaseName) => {
-          const phaseInfo = profile.phases[phaseName];
-          if (!phaseInfo) return null;
-          const widthPercentage = parseFloat(phaseInfo.percentage);
-          return (
-            <div
-              key={phaseName}
-              className="h-full flex items-center justify-start text-xs text-black"
-              style={{
-                width: `${widthPercentage}%`,
-                backgroundColor: phaseColors[phaseName]
-              }}
-            >
-              {`${phaseInfo.time} ${phaseInfo.percentage}% ${phaseInfo.avgRoR}`}
-            </div>
-          );
-        })}
-      </div>
-      {/* 하단에 시간 마커 추가 */}
-      <div className="relative mt-2 h-4">
-        {markers.map((marker, index) => (
-          <div
-            key={index}
-            className="absolute text-xs text-black -translate-x-1/2"
-            style={{ left: `${marker.left}%` }}
-          >
-            {marker.label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
-ProfileDetailCard.displayName = 'ProfileDetailCard';
 
 const RoastingAnalyzer = () => {
   const [profiles, setProfiles] = useState([]);
@@ -314,21 +285,7 @@ const RoastingAnalyzer = () => {
           <div className="mb-8 border rounded-lg bg-white shadow-md">
             <TimelineBars profiles={profiles} />
           </div>
-          <div className="grid grid-cols-1 gap-6">
-            {profiles.map((profile) => (
-              <div key={profile.fileName} className="relative">
-                <ProfileDetailCard profile={profile} />
-                <button
-                  onClick={() => handleRemoveProfile(profile.fileName)}
-                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 6.707a1 1 0 011.414 0L10 8.586l3.293-1.879a1 1 0 111.414 1.414L11.414 10l3.293 1.879a1 1 0 01-1.414 1.414L10 11.414l-3.293 1.879a1 1 0 01-1.414-1.414L8.586 10 5.293 11.879a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
+          {/* 하단의 개별 프로파일(막대그래프)은 삭제됨 */}
         </div>
       )}
     </div>
