@@ -117,6 +117,7 @@ const RoastingAnalyzer = () => {
     let temp160Point = null;
     let firstCrackPoint = null;
     let endPoint = null;
+    let phase1End = null; // phase1End 변수 초기화 (null)
 
     const timeToSeconds = (timeStr) => {
       const [minutes, seconds] = timeStr.split(':').map(Number);
@@ -153,7 +154,7 @@ const RoastingAnalyzer = () => {
     });
 
     const totalSeconds = endPoint ? timeToSeconds(endPoint['시간']) : 0;
-    const phase1Duration = phase1End ? timeToSeconds(temp160Point['시간']) - 0 : 0; // 명시적으로 계산
+    const phase1Duration = phase1End ? timeToSeconds(temp160Point['시간']) - 0 : 0; // 명시적으로 계산 (이제 phase1End는 null 또는 값을 가짐)
     const phase2Duration = firstCrackPoint ? timeToSeconds(firstCrackPoint['시간']) - phase1Duration : 0; // 명시적으로 계산
     const phase3Duration = endPoint && firstCrackPoint ? totalSeconds - phase2Duration - phase1Duration : 0; // 명시적으로 계산
 
@@ -161,19 +162,19 @@ const RoastingAnalyzer = () => {
     const phases = {
       '투입~160°C': temp160Point ? {
         time: formatTime(phase1Duration),
-        durationSeconds: phase1Duration, // 명시적 할당
+        durationSeconds: phase1Duration,
         percentage: totalSeconds > 0 ? (phase1Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(0, temp160Point.index)
       } : null,
       '160°C~1차크랙': firstCrackPoint ? {
         time: formatTime(phase2Duration),
-        durationSeconds: phase2Duration, // 명시적 할당
+        durationSeconds: phase2Duration,
         percentage: totalSeconds > 0 ? (phase2Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(temp160Point?.index || 0, firstCrackPoint.index)
       } : null,
       '1차크랙~배출': endPoint && firstCrackPoint ? {
         time: formatTime(phase3Duration),
-        durationSeconds: phase3Duration, // 명시적 할당
+        durationSeconds: phase3Duration,
         percentage: totalSeconds > 0 ? (phase3Duration / totalSeconds * 100).toFixed(1) : '0',
         avgRoR: calculateAvgRoR(firstCrackPoint.index, endPoint.index)
       } : null,
