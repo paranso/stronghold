@@ -27,53 +27,57 @@ const TimelineBars = ({ profiles }) => {
   return (
     <div className="w-full space-y-4 p-4">
       {profiles.map((profile) => (
-        // 높이를 h-8로 줄여 세로폭을 반으로 줄임
-        <div key={profile.fileName} className="relative h-8">
-          {profile.phases.map((phase, phaseIndex) => {
-            const prevPhases = profile.phases.slice(0, phaseIndex);
-            // 각 구간 시작 시간 (초)
-            const startTime = prevPhases.reduce((acc, p) => {
-              const [min, sec] = p.time.split(':').map(Number);
-              return acc + min * 60 + sec;
-            }, 0);
-            
-            const [min, sec] = phase.time.split(':').map(Number);
-            const duration = min * 60 + sec;
-            
-            const startPercent = (startTime / maxTotalSeconds) * 100;
-            const widthPercent = (duration / maxTotalSeconds) * 100;
-            // 구간 종료 시점(누적 시간)
-            const endTime = startTime + duration;
-
-            return (
-              <React.Fragment key={phaseIndex}>
-                <div
-                  className="absolute h-full flex items-center justify-start pl-1"
-                  style={{
-                    left: `${startPercent}%`,
-                    width: `${widthPercent}%`,
-                    backgroundColor: phaseColors[phaseIndex],
-                  }}
-                >
-                  <div className="w-full h-full text-[10px] text-black font-bold whitespace-nowrap">
-                    {phase.percentage}% ({phase.time}) ({phase.avgRoR})
+        <div key={profile.fileName} className="mb-4">
+          {/* 타임라인 영역 */}
+          <div className="relative h-8">
+            {profile.phases.map((phase, phaseIndex) => {
+              const prevPhases = profile.phases.slice(0, phaseIndex);
+              // 각 구간 시작 시간 (초)
+              const startTime = prevPhases.reduce((acc, p) => {
+                const [min, sec] = p.time.split(':').map(Number);
+                return acc + min * 60 + sec;
+              }, 0);
+              
+              const [min, sec] = phase.time.split(':').map(Number);
+              const duration = min * 60 + sec;
+              
+              const startPercent = (startTime / maxTotalSeconds) * 100;
+              const widthPercent = (duration / maxTotalSeconds) * 100;
+              // 구간 종료 시점(누적 시간)
+              const endTime = startTime + duration;
+  
+              return (
+                <React.Fragment key={phaseIndex}>
+                  <div
+                    className="absolute flex items-center justify-start pl-1"
+                    style={{
+                      left: `${startPercent}%`,
+                      width: `${widthPercent}%`,
+                      backgroundColor: phaseColors[phaseIndex],
+                      height: '100%'
+                    }}
+                  >
+                    <span className="text-[15px] text-black font-bold whitespace-nowrap">
+                      {phase.percentage}% ({phase.time}) ({phase.avgRoR})
+                    </span>
                   </div>
-                </div>
-                {/* 각 구간의 끝 위치에 누적 시간 표시 (top: '90%'로 숫자가 그래프 위에 조금 올라오도록 조정) */}
-                <div
-                  className="absolute text-xs text-black"
-                  style={{
-                    left: `${startPercent + widthPercent}%`,
-                    top: '90%',
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  {formatTime(endTime)}
-                </div>
-              </React.Fragment>
-            );
-          })}
-          <div className="absolute top-1/2 -left-4 transform -translate-x-full -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
+                  {/* 각 구간의 끝 위치에 누적 시간 표시 */}
+                  <div
+                    className="absolute text-xs text-black"
+                    style={{
+                      left: `${startPercent + widthPercent}%`,
+                      top: '90%',
+                      transform: 'translateX(-50%)',
+                    }}
+                  >
+                    {formatTime(endTime)}
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+          {/* 프로파일 파일명을 그래프 아래 초록색(첫번째 구간 시작)과 동일한 좌측 정렬로 표시 */}
+          <div className="mt-1 text-xs text-black pl-1">
             {profile.fileName}
           </div>
         </div>
