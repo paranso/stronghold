@@ -15,20 +15,20 @@ const formatTime = (seconds) => {
 };
 
 const TimelineBars = ({ profiles }) => {
-  // 연한 초록색, 연한 노란색, 연한 갈색 배경색
+  // 원래 코드의 색상값으로 복원
   const phaseColors = {
-    0: 'rgb(180, 240, 180)', 
-    1: 'rgb(255, 255, 200)', 
-    2: 'rgb(222, 184, 135)'
+    0: 'rgb(121, 209, 84)', 
+    1: 'rgb(255, 230, 140)', 
+    2: 'rgb(184, 152, 73)'
   };
 
   const maxTotalSeconds = 10 * 60; // 10분
 
   return (
-    <div className="w-full space-y-2 p-4">
+    <div className="w-full space-y-4 p-4">
       {profiles.map((profile) => (
-        // 높이를 늘려서 막대 아래에 시간이 표시될 공간 확보 (h-10)
-        <div key={profile.fileName} className="relative h-10 mb-2">
+        // 높이를 늘려서 누적시간 텍스트와 겹치지 않도록 h-16 사용
+        <div key={profile.fileName} className="relative h-16">
           {profile.phases.map((phase, phaseIndex) => {
             const prevPhases = profile.phases.slice(0, phaseIndex);
             // 각 구간 시작 시간 (초)
@@ -59,12 +59,12 @@ const TimelineBars = ({ profiles }) => {
                     {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
                   </div>
                 </div>
-                {/* 각 구간의 끝 위치에 누적 시간 표시 */}
+                {/* 각 구간의 끝 위치에 누적 시간 표시 (텍스트와 그래프가 겹치지 않도록 top을 약간 조정) */}
                 <div
                   className="absolute text-xs text-black"
                   style={{
                     left: `${startPercent + widthPercent}%`,
-                    top: '100%',
+                    top: '105%',
                     transform: 'translateX(-50%)',
                   }}
                 >
