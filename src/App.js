@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { Download } from 'lucide-react';
 
 // 도우미 함수: 시간을 초로 변환 및 mm:ss 형식으로 변환
 const timeToSeconds = (timeStr) => {
@@ -57,7 +56,7 @@ const TimelineBars = ({ profiles }) => {
                       height: '100%'
                     }}
                   >
-                    <span className="text-[15px] text-black font-bold whitespace-nowrap">
+                    <span className="text-[13px] text-black font-bold whitespace-nowrap">
                       {phase.percentage}% ({phase.time}) ({phase.avgRoR})
                     </span>
                   </div>
@@ -76,7 +75,7 @@ const TimelineBars = ({ profiles }) => {
               );
             })}
           </div>
-          {/* 프로파일 파일명을 그래프 아래 초록색(첫번째 구간 시작)과 동일한 좌측 정렬로 표시 */}
+          {/* 파일명: 초록색 막대(첫 번째 구간) 시작 위치와 동일하게 그래프 아래에 표시 */}
           <div className="mt-1 text-xs text-black pl-1">
             {profile.fileName}
           </div>
@@ -124,56 +123,6 @@ const RoastingAnalyzer = () => {
     setProfiles([...profiles, ...newProfiles]);
   };
 
-  const handleSaveAsImage = () => {
-    if (!contentRef.current) return;
-    
-    // 캔버스 생성
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    const element = contentRef.current;
-    
-    // 캔버스 크기 설정 (배율 2배)
-    canvas.width = element.offsetWidth * 2;
-    canvas.height = element.offsetHeight * 2;
-    context.scale(2, 2);
-    
-    // 배경 채우기
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 엘리먼트를 SVG 문자열로 변환
-    const svgData = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            ${element.innerHTML}
-          </div>
-        </foreignObject>
-      </svg>
-    `;
-    
-    // SVG를 이미지로 변환하여 캔버스에 그림
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      context.drawImage(img, 0, 0);
-      
-      // 이미지 다운로드
-      const dataUrl = canvas.toDataURL('image/png');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const link = document.createElement('a');
-      link.download = `roasting-profile-${timestamp}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-    
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const blobUrl = window.URL.createObjectURL(svgBlob);
-    img.src = blobUrl;
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-4" ref={contentRef}>
       <div className="mb-6">
@@ -193,13 +142,6 @@ const RoastingAnalyzer = () => {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium">Roasting Profiles</h2>
-            <button
-              onClick={handleSaveAsImage}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              <Download size={20} />
-              Save as Image
-            </button>
           </div>
           <div className="mb-6 border rounded-lg bg-white">
             <TimelineBars profiles={profiles} />
