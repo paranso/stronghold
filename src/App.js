@@ -2,21 +2,36 @@ import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
 
+// 도우미 함수: 시간을 초로 변환 및 mm:ss 형식으로 변환
+const timeToSeconds = (timeStr) => {
+  const [minutes, seconds] = timeStr.split(':').map(Number);
+  return minutes * 60 + seconds;
+};
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 const TimelineBars = ({ profiles }) => {
+  // 연한 초록색, 연한 노란색, 연한 갈색 배경색
   const phaseColors = {
-    0: 'rgb(121, 209, 84)', 
-    1: 'rgb(255, 230, 140)', 
-    2: 'rgb(184, 152, 73)'  
+    0: 'rgb(180, 240, 180)', 
+    1: 'rgb(255, 255, 200)', 
+    2: 'rgb(222, 184, 135)'
   };
 
   const maxTotalSeconds = 10 * 60; // 10분
 
   return (
     <div className="w-full space-y-2 p-4">
-      {profiles.map((profile, profileIndex) => (
-        <div key={profile.fileName} className="relative h-6 mb-2">
+      {profiles.map((profile) => (
+        // 높이를 늘려서 막대 아래에 시간이 표시될 공간 확보 (h-10)
+        <div key={profile.fileName} className="relative h-10 mb-2">
           {profile.phases.map((phase, phaseIndex) => {
             const prevPhases = profile.phases.slice(0, phaseIndex);
+            // 각 구간 시작 시간 (초)
             const startTime = prevPhases.reduce((acc, p) => {
               const [min, sec] = p.time.split(':').map(Number);
               return acc + min * 60 + sec;
@@ -27,21 +42,35 @@ const TimelineBars = ({ profiles }) => {
             
             const startPercent = (startTime / maxTotalSeconds) * 100;
             const widthPercent = (duration / maxTotalSeconds) * 100;
+            // 구간 종료 시점(누적 시간)
+            const endTime = startTime + duration;
 
             return (
-              <div
-                key={phaseIndex}
-                className="absolute h-full flex items-center"
-                style={{
-                  left: `${startPercent}%`,
-                  width: `${widthPercent}%`,
-                  backgroundColor: phaseColors[phaseIndex],
-                }}
-              >
-                <div className="flex items-center justify-center w-full h-full text-[10px] text-white whitespace-nowrap">
-                  {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
+              <React.Fragment key={phaseIndex}>
+                <div
+                  className="absolute h-full flex items-center"
+                  style={{
+                    left: `${startPercent}%`,
+                    width: `${widthPercent}%`,
+                    backgroundColor: phaseColors[phaseIndex],
+                  }}
+                >
+                  <div className="flex items-center justify-center w-full h-full text-[10px] text-black whitespace-nowrap">
+                    {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
+                  </div>
                 </div>
-              </div>
+                {/* 각 구간의 끝 위치에 누적 시간 표시 */}
+                <div
+                  className="absolute text-xs text-black"
+                  style={{
+                    left: `${startPercent + widthPercent}%`,
+                    top: '100%',
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  {formatTime(endTime)}
+                </div>
+              </React.Fragment>
             );
           })}
           <div className="absolute top-1/2 -left-4 transform -translate-x-full -translate-y-1/2 text-sm text-gray-600 whitespace-nowrap">
@@ -65,33 +94,6 @@ const TimelineBars = ({ profiles }) => {
     </div>
   );
 };
-
-const ProfileDetailCard = ({ profile }) => (
-  <div className="border rounded-lg p-4 mb-4 bg-white">
-    <h3 className="text-lg font-semibold mb-4">{profile.fileName || 'Unknown Profile'}</h3>
-    
-    <div className="space-y-2">
-      <div className="w-full h-6 flex rounded-lg overflow-hidden mb-4">
-        {profile.phases.map((phase, index) => (
-          <div
-            key={index}
-            className="h-full flex items-center justify-center text-white text-[10px]"
-            style={{
-              width: `${phase.percentage}%`,
-              backgroundColor: index === 0 ? 'rgb(100, 170, 255)' : index === 1 ? 'rgb(255, 140, 140)' : 'rgb(100, 210, 140)'
-            }}
-          >
-            {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
-          </div>
-        ))}
-      </div>
-      <div className="text-sm flex">
-        <span className="w-32">Total Time:</span>
-        <span className="font-medium">{profile.totalTime}</span>
-      </div>
-    </div>
-  </div>
-);
 
 const RoastingAnalyzer = () => {
   const [profiles, setProfiles] = useState([]);
@@ -121,21 +123,21 @@ const RoastingAnalyzer = () => {
   const handleSaveAsImage = () => {
     if (!contentRef.current) return;
     
-    // Create a canvas element
+    // 캔버스 생성
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const element = contentRef.current;
     
-    // Set canvas dimensions
+    // 캔버스 크기 설정 (배율 2배)
     canvas.width = element.offsetWidth * 2;
     canvas.height = element.offsetHeight * 2;
     context.scale(2, 2);
     
-    // Draw background
+    // 배경 채우기
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Convert the element to SVG string
+    // 엘리먼트를 SVG 문자열로 변환
     const svgData = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
         <foreignObject width="100%" height="100%">
@@ -146,12 +148,12 @@ const RoastingAnalyzer = () => {
       </svg>
     `;
     
-    // Create an image from the SVG
+    // SVG를 이미지로 변환하여 캔버스에 그림
     const img = new Image();
     img.onload = () => {
       context.drawImage(img, 0, 0);
       
-      // Download the image
+      // 이미지 다운로드
       const dataUrl = canvas.toDataURL('image/png');
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const link = document.createElement('a');
@@ -162,7 +164,6 @@ const RoastingAnalyzer = () => {
       document.body.removeChild(link);
     };
     
-    // Convert SVG to data URL
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const URL = window.URL || window.webkitURL || window;
     const blobUrl = URL.createObjectURL(svgBlob);
@@ -199,26 +200,10 @@ const RoastingAnalyzer = () => {
           <div className="mb-6 border rounded-lg bg-white">
             <TimelineBars profiles={profiles} />
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            {profiles.map((profile, index) => (
-              <ProfileDetailCard key={index} profile={profile} />
-            ))}
-          </div>
         </div>
       )}
     </div>
   );
-};
-
-const timeToSeconds = (timeStr) => {
-  const [minutes, seconds] = timeStr.split(':').map(Number);
-  return minutes * 60 + seconds;
-};
-
-const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 const analyzeProfile = (data, fileName) => {
@@ -226,7 +211,7 @@ const analyzeProfile = (data, fileName) => {
   let firstCrackPoint = null;
   let endPoint = null;
 
-  // Calculate RoR for each point
+  // 각 포인트의 RoR 계산
   const calculateAvgRoR = (startIndex, endIndex) => {
     let totalRoR = 0;
     let count = 0;
@@ -240,7 +225,7 @@ const analyzeProfile = (data, fileName) => {
     return Math.round(totalRoR / count);
   };
 
-  // Find key points
+  // 주요 포인트 찾기
   data.forEach((row, index) => {
     const beanTemp = row['원두표면'];
     if (!temp160Point && beanTemp >= 160) {
@@ -262,7 +247,7 @@ const analyzeProfile = (data, fileName) => {
   const phase2Duration = phase2End - phase1End;
   const phase3Duration = totalSeconds - phase2End;
 
-  // Calculate average RoR for each phase
+  // 각 구간의 평균 RoR 계산
   const phase1RoR = calculateAvgRoR(0, temp160Point.index);
   const phase2RoR = calculateAvgRoR(temp160Point.index, firstCrackPoint.index);
   const phase3RoR = calculateAvgRoR(firstCrackPoint.index, endPoint.index);
