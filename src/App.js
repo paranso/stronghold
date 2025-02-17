@@ -27,7 +27,7 @@ const TimelineBars = ({ profiles }) => {
   return (
     <div className="w-full space-y-4 p-4">
       {profiles.map((profile) => (
-        // 세로폭을 줄이기 위해 h-8 사용 (이전 h-16 -> h-8)
+        // 높이를 h-8로 줄여 세로폭을 반으로 줄임
         <div key={profile.fileName} className="relative h-8">
           {profile.phases.map((phase, phaseIndex) => {
             const prevPhases = profile.phases.slice(0, phaseIndex);
@@ -48,18 +48,18 @@ const TimelineBars = ({ profiles }) => {
             return (
               <React.Fragment key={phaseIndex}>
                 <div
-                  className="absolute h-full flex items-center"
+                  className="absolute h-full flex items-center justify-start pl-1"
                   style={{
                     left: `${startPercent}%`,
                     width: `${widthPercent}%`,
                     backgroundColor: phaseColors[phaseIndex],
                   }}
                 >
-                  <div className="flex items-center justify-center w-full h-full text-[10px] text-black whitespace-nowrap">
-                    {phase.percentage}% ({phase.time}) (ROR: {phase.avgRoR})
+                  <div className="w-full h-full text-[10px] text-black font-bold whitespace-nowrap">
+                    {phase.percentage}% ({phase.time}) ({phase.avgRoR})
                   </div>
                 </div>
-                {/* 각 구간의 끝 위치에 누적 시간 표시 (top: '90%'로 조정) */}
+                {/* 각 구간의 끝 위치에 누적 시간 표시 (top: '90%'로 숫자가 그래프 위에 조금 올라오도록 조정) */}
                 <div
                   className="absolute text-xs text-black"
                   style={{
@@ -150,6 +150,7 @@ const RoastingAnalyzer = () => {
     
     // SVG를 이미지로 변환하여 캔버스에 그림
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       context.drawImage(img, 0, 0);
       
@@ -165,8 +166,7 @@ const RoastingAnalyzer = () => {
     };
     
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const URL = window.URL || window.webkitURL || window;
-    const blobUrl = URL.createObjectURL(svgBlob);
+    const blobUrl = window.URL.createObjectURL(svgBlob);
     img.src = blobUrl;
   };
 
